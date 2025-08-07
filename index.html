@@ -77,8 +77,8 @@
         }
 
         .allele-slot {
-            width: 35px;
-            height: 35px;
+            width: 45px;
+            height: 45px;
             border: 2px solid rgba(255,255,255,0.3);
             border-radius: 8px;
             display: flex;
@@ -393,15 +393,40 @@
 
         // Input handling
         const keys = {};
-        document.addEventListener('keydown', (e) => {
-            keys[e.key] = true;
-            if (e.key === 'Escape') {
-                if (gameState.gameRunning) {
-                    gameState.gamePaused = !gameState.gamePaused;
-                }
-            }
-        });
-        document.addEventListener('keyup', (e) => keys[e.key] = false);
+      document.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === 'Escape' && gameState.gameRunning) {
+        gameState.gamePaused = !gameState.gamePaused;
+    }
+});
+document.addEventListener('keyup', (e) => {
+    keys[e.key.toLowerCase()] = false;
+});
+
+canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseY = e.clientY - rect.top;
+    const playerCenterY = gameState.player.y + gameState.player.height / 2;
+    gameState.player.y += (mouseY - playerCenterY) * 0.2;
+    gameState.player.y = Math.max(25, Math.min(canvas.height - 65, gameState.player.y));
+
+    // Rotação proporcional à diferença
+    const diffY = mouseY - playerCenterY;
+    gameState.player.targetRotation = Math.max(-0.3, Math.min(0.3, diffY * 0.005));
+});
+
+        canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const touchY = e.touches[0].clientY - rect.top;
+    const playerCenterY = gameState.player.y + gameState.player.height / 2;
+    gameState.player.y += (touchY - playerCenterY) * 0.2;
+    gameState.player.y = Math.max(25, Math.min(canvas.height - 65, gameState.player.y));
+
+    const diffY = touchY - playerCenterY;
+    gameState.player.targetRotation = Math.max(-0.3, Math.min(0.3, diffY * 0.005));
+}, { passive: false });
+
 
         // Particle system
         function createParticle(x, y, color, type = 'explosion') {
@@ -806,15 +831,15 @@
             const maxSpeed = 9;
             
             // Movement
-            if (keys['ArrowUp'] && player.y > 25) {
-                player.velocityY -= acceleration;
-                player.targetRotation = -0.18;
-            } else if (keys['ArrowDown'] && player.y < canvas.height - 65) {
-                player.velocityY += acceleration;
-                player.targetRotation = 0.18;
-            } else {
-                player.targetRotation = 0;
-            }
+            if ((keys['arrowup'] || keys['w']) && player.y > 25) {
+    player.velocityY -= acceleration;
+    player.targetRotation = -0.18;
+} else if ((keys['arrowdown'] || keys['s']) && player.y < canvas.height - 65) {
+    player.velocityY += acceleration;
+    player.targetRotation = 0.18;
+} else {
+    player.targetRotation = 0;
+}
             
             player.velocityY *= friction;
             player.velocityY = Math.max(-maxSpeed, Math.min(maxSpeed, player.velocityY));
@@ -1014,13 +1039,13 @@
                             gameState.aboAlleles[Math.floor(Math.random() * 2)] = item.type;
                         }
                     } else if (['Rh+', 'Rh-'].includes(item.type)) {
-                        if (!gameState.rhAlleles[0]) {
-                            gameState.rhAlleles[0] = item.type;
-                        } else if (!gameState.rhAlleles[1]) {
-                            gameState.rhAlleles[1] = item.type;
-                        } else {
-                            gameState.rhAlleles[Math.floor(Math.random() * 2)] = item.type;
-                        }
+                       if (!gameState.rhAlleles[0]) {
+    gameState.rhAlleles[0] = item.type;
+} else if (!gameState.rhAlleles[1]) {
+    gameState.rhAlleles[1] = item.type;
+} else {
+    gameState.rhAlleles[Math.floor(Math.random() * 2)] = item.type;
+}
                     }
                     
                     // Combo system
