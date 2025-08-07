@@ -1,829 +1,1224 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Corrida dos Tipos Sanguíneos - Versão Melhorada</title>
-<style>
-    /* Reset e básicos */
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        user-select: none;
-    }
-
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #1a0a0a, #4a0a0a);
-        overflow: hidden;
-        color: white;
-        touch-action: none;
-    }
-
-    #gameCanvas {
-        border: 2px solid rgba(255,255,255,0.3);
-        background: radial-gradient(ellipse at center, #5D1A1A, #2C0808);
-        display: block;
-        margin: 0 auto;
-        box-shadow: 0 0 50px rgba(255,0,0,0.3);
-        max-width: 100vw;
-        height: 80vh;
-        touch-action: none;
-    }
-
-    /* HUD */
-    .hud {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        z-index: 15;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        max-width: 300px;
-        font-size: 14px;
-    }
-
-    .blood-type-card {
-        background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(240,240,240,0.9));
-        color: #8B0000;
-        padding: 15px 20px;
-        border-radius: 15px;
-        font-weight: bold;
-        font-size: 26px;
-        text-align: center;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        border: 3px solid rgba(139,0,0,0.3);
-        min-width: 140px;
-        animation: pulse 2s infinite;
-        user-select:none;
-    }
-
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
-
-    .alleles-display {
-        background: rgba(0,0,0,0.8);
-        padding: 12px 15px;
-        border-radius: 12px;
-        border: 2px solid rgba(255,255,255,0.2);
-        backdrop-filter: blur(10px);
-        user-select:none;
-    }
-
-    .allele-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin: 5px 0;
-        font-size: 16px;
-    }
-
-    .allele-slots {
-        display: flex;
-        gap: 5px;
-    }
-
-    /* Aumento do texto dos alelos aqui para 22px */
-    .allele-slot {
-        width: 45px;
-        height: 45px;
-        border: 2px solid rgba(255,255,255,0.3);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        font-size: 22px;
-        background: rgba(255,255,255,0.1);
-        transition: all 0.3s ease;
-        user-select:none;
-    }
-
-    /* Cor efeito brilho temporário */
-    .allele-slot.collected-effect {
-        box-shadow: 0 0 15px 5px #FFD700;
-        transition: box-shadow 0.5s ease-out;
-    }
-
-    .stats {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-end;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        user-select:none;
-    }
-
-    .score {
-        font-size: 30px;
-        font-weight: bold;
-        color: #FFD700;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        user-select:none;
-    }
-
-    .lives {
-        display: flex;
-        gap: 5px;
-    }
-
-    .heart {
-        width: 30px;
-        height: 30px;
-        font-size: 24px;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        transition: all 0.3s ease;
-        user-select:none;
-    }
-
-    .objective-card {
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        background: linear-gradient(145deg, rgba(0,100,200,0.9), rgba(0,80,160,0.8));
-        padding: 15px 20px;
-        border-radius: 12px;
-        border: 2px solid rgba(255,255,255,0.3);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        font-weight: bold;
-        max-width: 250px;
-        user-select:none;
-    }
-
-    .objective-title {
-        font-size: 14px;
-        opacity: 0.8;
-        margin-bottom: 5px;
-    }
-
-    .objective-target {
-        font-size: 18px;
-        color: #FFD700;
-    }
-
-    .game-over, .start-screen, .menu-overlay, .tutorial-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.95);
-        color: white;
-        padding: 40px;
-        border-radius: 20px;
-        text-align: center;
-        border: 2px solid rgba(255,255,255,0.3);
-        backdrop-filter: blur(20px);
-        z-index: 10000;
-        display: none;
-        max-width: 90vw;
-        max-height: 90vh;
-        overflow-y: auto;
-        user-select:none;
-    }
-
-    button {
-        background: linear-gradient(145deg, #DC143C, #B22222);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
-        cursor: pointer;
-        margin: 10px 5px;
-        font-size: 16px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        transition: all 0.3s;
-        user-select:none;
-    }
-
-    button:hover {
-        background: linear-gradient(145deg, #B22222, #8B0000);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-    }
-
-    .controls-hint {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        background: rgba(0,0,0,0.7);
-        padding: 10px 15px;
-        border-radius: 8px;
-        font-size: 12px;
-        opacity: 0.8;
-        user-select:none;
-    }
-
-    .instructions {
-        text-align: left;
-        margin: 20px 0;
-        font-size: 14px;
-        line-height: 1.5;
-    }
-
-    .instructions h3 {
-        color: #FFD700;
-        margin-bottom: 10px;
-    }
-
-    .combo-indicator {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 24px;
-        color: #FFD700;
-        font-weight: bold;
-        pointer-events: none;
-        opacity: 0;
-        animation: comboFade 1s ease-out;
-        z-index: 9999;
-        user-select:none;
-    }
-
-    @keyframes comboFade {
-        0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    .progress-bar {
-        position: absolute;
-        bottom: 60px;
-        right: 20px;
-        width: 200px;
-        height: 8px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 4px;
-        overflow: hidden;
-        user-select:none;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #4ECDC4, #44A08D);
-        width: 0%;
-        transition: width 0.3s ease;
-    }
-
-    /* Menu configurações */
-    .menu-overlay {
-        max-width: 400px;
-    }
-    .menu-overlay h2 {
-        color: #FFD700;
-        margin-bottom: 10px;
-    }
-    .menu-item {
-        margin: 15px 0;
-    }
-    label {
-        display: block;
-        margin-bottom: 6px;
-    }
-    input[type="range"] {
-        width: 100%;
-    }
-    select {
-        width: 100%;
-        padding: 6px;
-        border-radius: 6px;
-        border: none;
-        font-size: 16px;
-    }
-
-    /* Tutorial */
-    .tutorial-overlay {
-        max-width: 450px;
-    }
-    .tutorial-step {
-        margin-bottom: 20px;
-        font-size: 16px;
-    }
-    .tutorial-btns {
-        display: flex;
-        justify-content: space-between;
-    }
-
-    /* Responsividade */
-    @media (max-width: 900px) {
-        #gameCanvas {
-            height: 70vh;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrida dos Tipos Sanguíneos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a0a0a, #4a0a0a);
+            overflow: hidden;
+            color: white;
+        }
+
+        #gameCanvas {
+            border: 2px solid rgba(255,255,255,0.3);
+            background: radial-gradient(ellipse at center, #5D1A1A, #2C0808);
+            display: block;
+            margin: 0 auto;
+            box-shadow: 0 0 50px rgba(255,0,0,0.3);
+        }
+
         .hud {
-            top: 10px;
-            left: 10px;
-            max-width: 220px;
-            font-size: 12px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
-        .blood-type-card {
-            font-size: 20px;
-            min-width: 110px;
-        }
-        .allele-slot {
-            width: 38px;
-            height: 38px;
-            font-size: 18px;
-        }
-        .stats {
-            top: 10px;
-            right: 10px;
-        }
-        .score {
-            font-size: 24px;
-        }
-        .heart {
-            font-size: 20px;
-            width: 25px;
-            height: 25px;
-        }
-        .objective-card {
-            bottom: 10px;
-            left: 10px;
-            max-width: 180px;
-            font-size: 14px;
-        }
-        .progress-bar {
-            bottom: 50px;
-            right: 10px;
-            width: 160px;
-        }
-        .controls-hint {
-            bottom: 10px;
-            right: 10px;
-            font-size: 10px;
-        }
-    }
 
-    /* Orientação paisagem/retrato (mobile) */
-    @media (orientation: portrait) {
-        #gameCanvas {
-            width: 100vw;
-            height: 60vh;
+        .blood-type-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(240,240,240,0.9));
+            color: #8B0000;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 24px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            border: 3px solid rgba(139,0,0,0.3);
+            min-width: 120px;
+            animation: pulse 2s infinite;
         }
-    }
-    @media (orientation: landscape) {
-        #gameCanvas {
-            width: 100vw;
-            height: 80vh;
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
-    }
-</style>
+
+        .alleles-display {
+            background: rgba(0,0,0,0.8);
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .allele-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .allele-slots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .allele-slot {
+            width: 35px;
+            height: 35px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .lives {
+            display: flex;
+            gap: 5px;
+        }
+
+        .heart {
+            width: 30px;
+            height: 30px;
+            font-size: 24px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .objective-card {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(145deg, rgba(0,100,200,0.9), rgba(0,80,160,0.8));
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-weight: bold;
+            max-width: 250px;
+        }
+
+        .objective-title {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .objective-target {
+            font-size: 18px;
+            color: #FFD700;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+        }
+
+        button {
+            background: linear-gradient(145deg, #DC143C, #B22222);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: linear-gradient(145deg, #B22222, #8B0000);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .instructions {
+            text-align: left;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .instructions h3 {
+            color: #FFD700;
+            margin-bottom: 10px;
+        }
+
+        .combo-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #FFD700;
+            font-weight: bold;
+            pointer-events: none;
+            opacity: 0;
+            animation: comboFade 1s ease-out;
+            z-index: 999;
+        }
+
+        @keyframes comboFade {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 60px;
+            right: 20px;
+            width: 200px;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ECDC4, #44A08D);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
 </head>
 <body>
-
-<!-- Telas -->
-<div class="start-screen" id="startScreen">
-    <h1 style="color: #DC143C; margin-bottom: 20px;">🩸 Corrida dos Tipos Sanguíneos</h1>
-    <div class="instructions">
-        <h3>Como Jogar:</h3>
-        <p>• Use ↑↓ ou W/S para navegar pelo vaso sanguíneo</p>
-        <p>• Também pode usar o mouse movendo verticalmente o jogador</p>
-        <p>• Em mobile, mova o dedo verticalmente para controlar</p>
-        <p>• Colete alelos (A, B, O, Rh+, Rh-) para formar tipos sanguíneos</p>
-        <p>• Evite obstáculos: vírus, bactérias, toxinas e plaquetas</p>
-        <p>• Complete os objetivos para ganhar pontos extras</p>
-        <p>• Cuidado com outros espermatozoides - eles podem roubar seus alelos!</p>
-        <br />
-        <h3>Genética dos Tipos Sanguíneos:</h3>
-        <p>• Tipo A: AA ou AO</p>
-        <p>• Tipo B: BB ou BO</p>
-        <p>• Tipo AB: AB</p>
-        <p>• Tipo O: OO</p>
-        <p>• Rh positivo: pelo menos um Rh+</p>
-        <p>• Rh negativo: apenas Rh-</p>
-    </div>
-    <button onclick="startGame()">Iniciar Jogo</button>
-    <button onclick="openMenu()">Configurações</button>
-    <button onclick="openTutorial()">Tutorial</button>
-</div>
-
-<div class="hud" aria-live="polite" aria-atomic="true">
-    <div class="blood-type-card" id="bloodType" aria-label="Tipo sanguíneo">Incompleto</div>
-    <div class="alleles-display">
-        <div class="allele-row" aria-label="Alelos ABO">
-            <span>ABO:</span>
-            <div class="allele-slots">
-                <div class="allele-slot" id="abo1" aria-live="polite" aria-atomic="true">_</div>
-                <div class="allele-slot" id="abo2" aria-live="polite" aria-atomic="true">_</div>
-            </div>
+    <div class="start-screen" id="startScreen">
+        <h1 style="color: #DC143C; margin-bottom: 20px;">🩸 Corrida dos Tipos Sanguíneos</h1>
+        <div class="instructions">
+            <h3>Como Jogar:</h3>
+            <p>• Use ↑↓ para navegar pelo vaso sanguíneo</p>
+            <p>• Colete alelos (A, B, O, Rh+, Rh-) para formar tipos sanguíneos</p>
+            <p>• Evite obstáculos: vírus, bactérias, toxinas e plaquetas</p>
+            <p>• Complete os objetivos para ganhar pontos extras</p>
+            <p>• Cuidado com outros espermatozoides - eles podem roubar seus alelos!</p>
+            <br>
+            <h3>Genética dos Tipos Sanguíneos:</h3>
+            <p>• Tipo A: AA ou AO</p>
+            <p>• Tipo B: BB ou BO</p>
+            <p>• Tipo AB: AB</p>
+            <p>• Tipo O: OO</p>
+            <p>• Rh positivo: Rh+ presente</p>
+            <p>• Rh negativo: apenas Rh-</p>
         </div>
-        <div class="allele-row" aria-label="Alelos Rh">
-            <span>Rh:</span>
-            <div class="allele-slots">
-                <div class="allele-slot" id="rh1" aria-live="polite" aria-atomic="true">_</div>
-                <div class="allele-slot" id="rh2" aria-live="polite" aria-atomic="true">_</div>
+        <button onclick="startGame()">Iniciar Jogo</button>
+    </div>
+
+    <div class="hud">
+        <div class="blood-type-card">
+            <div id="bloodType">Incompleto</div>
+        </div>
+        <div class="alleles-display">
+            <div class="allele-row">
+                <span>ABO:</span>
+                <div class="allele-slots">
+                    <div class="allele-slot" id="abo1">_</div>
+                    <div class="allele-slot" id="abo2">_</div>
+                </div>
+            </div>
+            <div class="allele-row">
+                <span>Rh:</span>
+                <div class="allele-slots">
+                    <div class="allele-slot" id="rh1">_</div>
+                    <div class="allele-slot" id="rh2">_</div>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="stats" aria-live="polite" aria-atomic="true">
-    <div class="score" id="score" aria-label="Pontuação">0</div>
-    <div class="lives" id="livesContainer" aria-label="Vidas restantes">
-        <span class="heart">❤️</span>
-        <span class="heart">❤️</span>
-        <span class="heart">❤️</span>
+    <div class="stats">
+        <div class="score" id="score">0</div>
+        <div class="lives" id="livesContainer">
+            <span class="heart">❤️</span>
+            <span class="heart">❤️</span>
+            <span class="heart">❤️</span>
+        </div>
     </div>
-</div>
 
-<div class="objective-card" aria-live="polite" aria-atomic="true">
-    <div class="objective-title">OBJETIVO ATUAL:</div>
-    <div class="objective-target" id="currentObjective">Forme o tipo A+</div>
-</div>
-
-<div class="progress-bar" aria-label="Progresso do nível">
-    <div class="progress-fill" id="progressFill"></div>
-</div>
-
-<div class="controls-hint" aria-hidden="true">
-    ↑↓ ou W/S para mover • ESC para pausar • Mouse/touch para mover verticalmente
-</div>
-
-<canvas id="gameCanvas" width="1000" height="600" role="main" aria-label="Canvas do jogo"></canvas>
-
-<div class="combo-indicator" id="comboIndicator" aria-live="polite" aria-atomic="true" aria-relevant="additions">+50 COMBO!</div>
-
-<div class="game-over" id="gameOver" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" aria-describedby="gameOverDesc">
-    <h2 id="gameOverTitle">Fim de Jogo!</h2>
-    <p id="gameOverDesc">Tipo sanguíneo final: <span id="finalBloodType"></span></p>
-    <p>Pontuação final: <span id="finalScore"></span></p>
-    <p>Objetivos completados: <span id="objectivesCompleted">0</span></p>
-    <p>Nível alcançado: <span id="finalLevel">1</span></p>
-    <p>Recorde atual: <span id="bestScore">0</span></p>
-    <button onclick="restartGame()">Jogar Novamente</button>
-    <button onclick="showStartScreen()">Menu Principal</button>
-</div>
-
-<div class="menu-overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-labelledby="menuTitle" style="display:none;">
-    <h2 id="menuTitle">Configurações</h2>
-    <div class="menu-item">
-        <label for="volumeRange">Volume</label>
-        <input type="range" id="volumeRange" min="0" max="1" step="0.05" />
+    <div class="objective-card">
+        <div class="objective-title">OBJETIVO ATUAL:</div>
+        <div class="objective-target" id="currentObjective">Forme o tipo A+</div>
     </div>
-    <div class="menu-item">
-        <label for="sensitivityRange">Sensibilidade toque/mouse</label>
-        <input type="range" id="sensitivityRange" min="0.05" max="1" step="0.05" />
+
+    <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
     </div>
-    <div class="menu-item">
-        <label for="skinSelect">Skin do jogador</label>
-        <select id="skinSelect">
-            <option value="default">Padrão</option>
-            <option value="red">Vermelho</option>
-            <option value="blue">Azul</option>
-            <option value="green">Verde</option>
-        </select>
+
+    <div class="controls-hint">
+        ↑↓ para mover • ESC para pausar
     </div>
-    <button onclick="closeMenu()">Fechar</button>
-</div>
 
-<div class="tutorial-overlay" id="tutorialOverlay" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle" style="display:none;">
-    <h2 id="tutorialTitle">Tutorial Interativo</h2>
-    <div id="tutorialContent"></div>
-    <div class="tutorial-btns">
-        <button id="prevTutorialBtn" disabled>Anterior</button>
-        <button id="nextTutorialBtn">Próximo</button>
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+    <div class="combo-indicator" id="comboIndicator">+50 COMBO!</div>
+
+    <div class="game-over" id="gameOver">
+        <h2>Fim de Jogo!</h2>
+        <p>Tipo sanguíneo final: <span id="finalBloodType"></span></p>
+        <p>Pontuação final: <span id="finalScore"></span></p>
+        <p>Objetivos completados: <span id="objectivesCompleted">0</span></p>
+        <p>Nível alcançado: <span id="finalLevel">1</span></p>
+        <button onclick="restartGame()">Jogar Novamente</button>
+        <button onclick="showStartScreen()">Menu Principal</button>
     </div>
-</div>
 
-<script>
-    // Canvas setup
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
 
-    // Game Settings persistidos
-    let gameSettings = {
-        soundOn: true,
-        volume: 0.5,
-        sensitivity: 0.2,
-        skin: 'default'
-    };
-
-    // Load settings from localStorage
-    function loadSettings() {
-        const saved = localStorage.getItem('gameSettings');
-        if (saved) {
-            try {
-                const obj = JSON.parse(saved);
-                Object.assign(gameSettings, obj);
-            } catch {}
-        }
-        document.getElementById('volumeRange').value = gameSettings.volume;
-        document.getElementById('sensitivityRange').value = gameSettings.sensitivity;
-        document.getElementById('skinSelect').value = gameSettings.skin;
-    }
-
-    // Save settings to localStorage
-    function saveSettings() {
-        localStorage.setItem('gameSettings', JSON.stringify(gameSettings));
-    }
-
-    // Apply settings effects - volume, etc
-    function applySettings() {
-        if (sounds.bgMusic) {
-            sounds.bgMusic.volume = gameSettings.soundOn ? gameSettings.volume : 0;
-        }
-    }
-
-    // Sound effects setup
-    const sounds = {
-        bgMusic: new Audio('https://cdn.pixabay.com/download/audio/2022/03/04/audio_1a06abe183.mp3?filename=happy-joy-126544.mp3'),
-        collect: new Audio('https://cdn.pixabay.com/download/audio/2021/09/17/audio_8fe18bd48e.mp3?filename=success-fanfare-trumpets-6185.mp3'),
-        hit: new Audio('https://cdn.pixabay.com/download/audio/2021/07/27/audio_d9759c1c58.mp3?filename=collision-hit-04-6464.mp3'),
-        gameOver: new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_b292d799f1.mp3?filename=game-over-arcade-6435.mp3')
-    };
-
-    for (const s of Object.values(sounds)) {
-        s.volume = gameSettings.volume;
-        s.preload = 'auto';
-    }
-    sounds.bgMusic.loop = true;
-
-    function playSound(name) {
-        try {
-            if (gameSettings.soundOn) {
-                sounds[name].currentTime = 0;
-                sounds[name].play();
-            }
-        } catch {}
-    }
-
-    // Game state
-    let gameState = {
-        player: {
-            x: 100, y: 300, width: 45, height: 35,
-            velocityY: 0, rotation: 0, targetRotation: 0,
-            tailSegments: [],
-            invulnerable: 0,
-            comboCount: 0
-        },
-        items: [],
-        obstacles: [],
-        competitors: [],
-        backgroundElements: [],
-        particles: [],
-        bloodFlow: { strength: 2, turbulence: 0 },
-        score: 0,
-        lives: 3,
-        speed: 4,
-        frameCount: 0,
-        gameRunning: false,
-        gamePaused: false,
-        aboAlleles: [null, null],
-        rhAlleles: [null, null],
-        bloodType: 'Incompleto',
-        cameraShake: 0,
-        currentObjective: 'A+',
-        objectivesCompleted: 0,
-        difficultyLevel: 1,
-        consecutiveCollects: 0,
-        bestScore: 0
-    };
-
-    const alleleTypes = ['A', 'B', 'O', 'Rh+', 'Rh-'];
-    const obstacleTypes = ['Vírus', 'Bactéria', 'Toxina', 'Plaqueta'];
-    const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-
-    // Tail init
-    function initTail() {
-        gameState.player.tailSegments = [];
-        for (let i = 0; i < 15; i++) {
-            gameState.player.tailSegments.push({
-                x: 100 - (i * 6),
-                y: 300,
-                targetX: 100 - (i * 6),
-                targetY: 300,
-                flowOffset: 0
-            });
-        }
-    }
-
-    // Background init
-    function initBackground() {
-        gameState.backgroundElements = [];
-        for (let i = 0; i < 60; i++) {
-            gameState.backgroundElements.push({
-                x: Math.random() * canvas.width * 2,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 4 + 1,
-                speed: Math.random() * 0.8 + 0.3,
-                opacity: Math.random() * 0.4 + 0.1,
-                type: Math.random() < 0.7 ? 'particle' : 'cell'
-            });
-        }
-    }
-
-    // Input state
-    const keys = {};
-
-    // Keyboard listeners (setas + WASD)
-    document.addEventListener('keydown', (e) => {
-        keys[e.key.toLowerCase()] = true;
-        if (e.key === 'Escape' && gameState.gameRunning) {
-            gameState.gamePaused = !gameState.gamePaused;
-            if (!gameState.gamePaused) {
-                gameLoop(); // resume game loop
-            }
-        }
-    });
-
-    document.addEventListener('keyup', (e) => {
-        keys[e.key.toLowerCase()] = false;
-    });
-
-    // Mouse vertical control
-    canvas.addEventListener('mousemove', e => {
-        if (!gameState.gameRunning || gameState.gamePaused) return;
-        const rect = canvas.getBoundingClientRect();
-        const mouseY = e.clientY - rect.top;
-        const playerCenterY = gameState.player.y + gameState.player.height / 2;
-        let diff = (mouseY - playerCenterY) * gameSettings.sensitivity;
-        gameState.player.y += diff;
-        gameState.player.y = Math.max(25, Math.min(canvas.height - 65, gameState.player.y));
-
-        const diffY = mouseY - playerCenterY;
-        gameState.player.targetRotation = Math.max(-0.3, Math.min(0.3, diffY * 0.005));
-    });
-
-    // Touch control
-    canvas.addEventListener('touchmove', e => {
-        if (!gameState.gameRunning || gameState.gamePaused) return;
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const touchY = e.touches[0].clientY - rect.top;
-        const playerCenterY = gameState.player.y + gameState.player.height / 2;
-        let diff = (touchY - playerCenterY) * gameSettings.sensitivity;
-        gameState.player.y += diff;
-        gameState.player.y = Math.max(25, Math.min(canvas.height - 65, gameState.player.y));
-
-        const diffY = touchY - playerCenterY;
-        gameState.player.targetRotation = Math.max(-0.3, Math.min(0.3, diffY * 0.005));
-    }, { passive: false });
-
-    // Particle system
-    function createParticle(x, y, color, type = 'explosion') {
-        return {
-            x, y,
-            velocityX: (Math.random() - 0.5) * 8,
-            velocityY: (Math.random() - 0.5) * 8,
-            life: 1,
-            maxLife: 30 + Math.random() * 20,
-            color,
-            size: Math.random() * 4 + 2,
-            type
+        // Game state
+        let gameState = {
+            player: { 
+                x: 100, y: 300, width: 45, height: 35, 
+                velocityY: 0, rotation: 0, targetRotation: 0,
+                tailSegments: [],
+                invulnerable: 0,
+                comboCount: 0
+            },
+            items: [],
+            obstacles: [],
+            competitors: [],
+            backgroundElements: [],
+            particles: [],
+            bloodFlow: { strength: 2, turbulence: 0 },
+            score: 0,
+            lives: 3,
+            speed: 4,
+            frameCount: 0,
+            gameRunning: false,
+            gamePaused: false,
+            aboAlleles: [null, null],
+            rhAlleles: [null, null],
+            bloodType: 'Incompleto',
+            cameraShake: 0,
+            currentObjective: 'A+',
+            objectivesCompleted: 0,
+            difficultyLevel: 1,
+            consecutiveCollects: 0
         };
-    }
 
-    function updateParticles() {
-        gameState.particles = gameState.particles.filter(particle => {
-            particle.x += particle.velocityX;
-            particle.y += particle.velocityY;
-            particle.velocityX *= 0.98;
-            particle.velocityY *= 0.98;
-            particle.life++;
+        // Available types
+        const alleleTypes = ['A', 'B', 'O', 'Rh+', 'Rh-'];
+        const obstacleTypes = ['Vírus', 'Bactéria', 'Toxina', 'Plaqueta'];
+        const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-            ctx.globalAlpha = 1 - (particle.life / particle.maxLife);
-            ctx.fillStyle = particle.color;
-            ctx.beginPath();
-            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-            ctx.fill();
-
-            return particle.life < particle.maxLife;
-        });
-        ctx.globalAlpha = 1;
-    }
-
-    // Background
-    function drawBackground() {
-        // Base gradient
-        const gradient = ctx.createRadialGradient(
-            canvas.width * 0.8, canvas.height * 0.4, 0,
-            canvas.width * 0.8, canvas.height * 0.4, canvas.width
-        );
-        gradient.addColorStop(0, '#6D1A1A');
-        gradient.addColorStop(0.5, '#4D0808');
-        gradient.addColorStop(1, '#2A0303');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Blood flow turbulence
-        gameState.bloodFlow.turbulence = Math.sin(gameState.frameCount * 0.02) * 0.5 +
-                                       Math.sin(gameState.frameCount * 0.03) * 0.3;
-
-        // Background elements with flow
-        gameState.backgroundElements.forEach(element => {
-            const flowEffect = gameState.bloodFlow.strength + gameState.bloodFlow.turbulence;
-            element.x -= (element.speed * gameState.speed * 0.4) + flowEffect;
-
-            if (element.x < -30) {
-                element.x = canvas.width + 30;
-                element.y = Math.random() * canvas.height;
+        // Initialize tail segments
+        function initTail() {
+            gameState.player.tailSegments = [];
+            for (let i = 0; i < 15; i++) {
+                gameState.player.tailSegments.push({
+                    x: 100 - (i * 6),
+                    y: 300,
+                    targetX: 100 - (i * 6),
+                    targetY: 300,
+                    flowOffset: 0
+                });
             }
+        }
 
-            ctx.globalAlpha = element.opacity;
-            if (element.type === 'cell') {
-                ctx.fillStyle = '#AA4444';
+        // Input handling
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === 'Escape') {
+                if (gameState.gameRunning) {
+                    gameState.gamePaused = !gameState.gamePaused;
+                }
+            }
+        });
+        document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+        // Particle system
+        function createParticle(x, y, color, type = 'explosion') {
+            return {
+                x, y,
+                velocityX: (Math.random() - 0.5) * 8,
+                velocityY: (Math.random() - 0.5) * 8,
+                life: 1,
+                maxLife: 30 + Math.random() * 20,
+                color,
+                size: Math.random() * 4 + 2,
+                type
+            };
+        }
+
+        function updateParticles() {
+            gameState.particles = gameState.particles.filter(particle => {
+                particle.x += particle.velocityX;
+                particle.y += particle.velocityY;
+                particle.velocityX *= 0.98;
+                particle.velocityY *= 0.98;
+                particle.life++;
+                
+                ctx.globalAlpha = 1 - (particle.life / particle.maxLife);
+                ctx.fillStyle = particle.color;
                 ctx.beginPath();
-                ctx.ellipse(element.x, element.y, element.size * 2, element.size, 0, 0, Math.PI * 2);
+                ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                return particle.life < particle.maxLife;
+            });
+            ctx.globalAlpha = 1;
+        }
+
+        // Initialize background
+        function initBackground() {
+            gameState.backgroundElements = [];
+            for (let i = 0; i < 60; i++) {
+                gameState.backgroundElements.push({
+                    x: Math.random() * canvas.width * 2,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 4 + 1,
+                    speed: Math.random() * 0.8 + 0.3,
+                    opacity: Math.random() * 0.4 + 0.1,
+                    type: Math.random() < 0.7 ? 'particle' : 'cell'
+                });
+            }
+        }
+
+        // Draw enhanced background
+        function drawBackground() {
+            // Base gradient
+            const gradient = ctx.createRadialGradient(
+                canvas.width * 0.8, canvas.height * 0.4, 0,
+                canvas.width * 0.8, canvas.height * 0.4, canvas.width
+            );
+            gradient.addColorStop(0, '#6D1A1A');
+            gradient.addColorStop(0.5, '#4D0808');
+            gradient.addColorStop(1, '#2A0303');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Blood flow turbulence
+            gameState.bloodFlow.turbulence = Math.sin(gameState.frameCount * 0.02) * 0.5 + 
+                                           Math.sin(gameState.frameCount * 0.03) * 0.3;
+            
+            // Background elements with flow
+            gameState.backgroundElements.forEach(element => {
+                const flowEffect = gameState.bloodFlow.strength + gameState.bloodFlow.turbulence;
+                element.x -= (element.speed * gameState.speed * 0.4) + flowEffect;
+                
+                if (element.x < -30) {
+                    element.x = canvas.width + 30;
+                    element.y = Math.random() * canvas.height;
+                }
+                
+                ctx.globalAlpha = element.opacity;
+                if (element.type === 'cell') {
+                    ctx.fillStyle = '#AA4444';
+                    ctx.beginPath();
+                    ctx.ellipse(element.x, element.y, element.size * 2, element.size, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#FF6666';
+                    ctx.beginPath();
+                    ctx.arc(element.x, element.y, element.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            ctx.globalAlpha = 1;
+            
+            // Vessel walls with pulsation
+            ctx.strokeStyle = 'rgba(139, 0, 0, 0.4)';
+            ctx.lineWidth = 4;
+            const pulse = Math.sin(gameState.frameCount * 0.05) * 10;
+            
+            for (let i = 0; i < 3; i++) {
+                const offset = (gameState.frameCount * 0.03 + i) % (Math.PI * 2);
+                const wave = Math.sin(offset) * (15 + i * 8) + pulse;
+                
+                ctx.beginPath();
+                ctx.moveTo(0, 40 + wave);
+                ctx.lineTo(canvas.width, 50 + wave);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height - 40 - wave);
+                ctx.lineTo(canvas.width, canvas.height - 50 - wave);
+                ctx.stroke();
+            }
+        }
+
+        // Enhanced player with blood flow physics
+        function drawPlayer() {
+            const player = gameState.player;
+            ctx.save();
+            
+            if (gameState.cameraShake > 0) {
+                ctx.translate(
+                    (Math.random() - 0.5) * gameState.cameraShake,
+                    (Math.random() - 0.5) * gameState.cameraShake
+                );
+                gameState.cameraShake *= 0.9;
+            }
+            
+            // Invulnerability flash
+            if (player.invulnerable > 0) {
+                ctx.globalAlpha = 0.5 + 0.5 * Math.sin(gameState.frameCount * 0.5);
+                player.invulnerable--;
+            }
+            
+            // Draw tail with blood flow effect
+            for (let i = 0; i < player.tailSegments.length - 1; i++) {
+                const segment = player.tailSegments[i];
+                const nextSegment = player.tailSegments[i + 1];
+                
+                const opacity = Math.max(0.2, 0.95 - (i * 0.05));
+                ctx.strokeStyle = `rgba(240, 240, 240, ${opacity})`;
+                ctx.lineWidth = Math.max(1, 5 - (i * 0.25));
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(segment.x, segment.y);
+                ctx.lineTo(nextSegment.x, nextSegment.y);
+                ctx.stroke();
+            }
+            
+            // Main head
+            ctx.translate(player.x + 22, player.y + 17);
+            ctx.rotate(player.rotation);
+            
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(2, 2, 16, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Head gradient
+            const headGradient = ctx.createRadialGradient(-3, -3, 0, 0, 0, 20);
+            headGradient.addColorStop(0, '#FFFFFF');
+            headGradient.addColorStop(0.6, '#F0F0F0');
+            headGradient.addColorStop(1, '#D0D0D0');
+            
+            ctx.fillStyle = headGradient;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 15, 9, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Nucleus
+            ctx.fillStyle = '#B8B8B8';
+            ctx.beginPath();
+            ctx.ellipse(-3, 0, 7, 4, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        // Items and obstacles (same as original but with enhanced effects)
+        function createItem(type) {
+            const size = Math.random() * 15 + 30;
+            return {
+                x: canvas.width + 20,
+                y: Math.random() * (canvas.height - 150) + 75,
+                width: size,
+                height: size,
+                type: type,
+                color: getItemColor(type),
+                pulsePhase: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.08
+            };
+        }
+
+        function getItemColor(type) {
+            const colors = {
+                'A': '#FF6B6B', 'B': '#4ECDC4', 'O': '#95E1D3',
+                'Rh+': '#F38BA8', 'Rh-': '#FDE68A'
+            };
+            return colors[type] || '#FFFFFF';
+        }
+
+        function drawItem(item) {
+            const pulse = Math.sin(gameState.frameCount * 0.12 + item.pulsePhase) * 0.3 + 1;
+            const size = (item.width / 2) * pulse;
+            
+            ctx.save();
+            ctx.translate(item.x + item.width/2, item.y + item.height/2);
+            ctx.rotate(gameState.frameCount * item.rotationSpeed);
+            
+            ctx.shadowColor = item.color;
+            ctx.shadowBlur = 20 * pulse;
+            
+            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+            gradient.addColorStop(0, item.color);
+            gradient.addColorStop(0.7, item.color + 'AA');
+            gradient.addColorStop(1, item.color + '44');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.beginPath();
+            ctx.arc(-size * 0.3, -size * 0.3, size * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.font = `bold ${Math.max(10, size * 0.5)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(item.type, 0, 0);
+            
+            ctx.restore();
+        }
+
+        function createObstacle(type) {
+            const size = Math.random() * 20 + 35;
+            const obstacle = {
+                x: canvas.width + 20,
+                y: Math.random() * (canvas.height - 150) + 75,
+                width: size,
+                height: size,
+                type: type,
+                rotationSpeed: (Math.random() - 0.5) * 0.1,
+                pulsePhase: Math.random() * Math.PI * 2
+            };
+            
+            // Type-specific properties
+            switch(type) {
+                case 'Vírus':
+                    obstacle.color = '#AA0000';
+                    obstacle.spikes = 12;
+                    break;
+                case 'Bactéria':
+                    obstacle.color = '#008800';
+                    obstacle.spikes = 0;
+                    break;
+                case 'Toxina':
+                    obstacle.color = '#AA00AA';
+                    obstacle.spikes = 6;
+                    break;
+                case 'Plaqueta':
+                    obstacle.color = '#AAAA00';
+                    obstacle.spikes = 0;
+                    break;
+            }
+            
+            return obstacle;
+        }
+
+        function drawObstacle(obstacle) {
+            const pulse = Math.sin(gameState.frameCount * 0.1 + obstacle.pulsePhase) * 0.2 + 1;
+            const size = (obstacle.width / 2) * pulse;
+            
+            ctx.save();
+            ctx.translate(obstacle.x + obstacle.width/2, obstacle.y + obstacle.height/2);
+            ctx.rotate(gameState.frameCount * obstacle.rotationSpeed);
+            
+            ctx.shadowColor = obstacle.color;
+            ctx.shadowBlur = 15;
+            
+            if (obstacle.spikes > 0) {
+                // Spiky obstacles
+                ctx.fillStyle = obstacle.color;
+                ctx.beginPath();
+                for (let i = 0; i <= obstacle.spikes; i++) {
+                    const angle = (i / obstacle.spikes) * Math.PI * 2;
+                    const radius = i % 2 === 0 ? size : size * 0.6;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
                 ctx.fill();
             } else {
-                ctx.fillStyle = '#FF6666';
+                // Round obstacles
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+                gradient.addColorStop(0, obstacle.color);
+                gradient.addColorStop(1, obstacle.color + '66');
+                ctx.fillStyle = gradient;
                 ctx.beginPath();
-                ctx.arc(element.x, element.y, element.size, 0, Math.PI * 2);
+                ctx.arc(0, 0, size, 0, Math.PI * 2);
                 ctx.fill();
             }
-        });
-        ctx.globalAlpha = 1;
-
-        // Vessel walls with pulsation
-        ctx.strokeStyle = 'rgba(139, 0, 0, 0.4)';
-        ctx.lineWidth = 4;
-        const pulse = Math.sin(gameState.frameCount * 0.05) * 10;
-
-        for (let i = 0; i < 3; i++) {
-            const offset = (gameState.frameCount * 0.03 + i) % (Math.PI * 2);
-            const wave = Math.sin(offset) * (15 + i * 8) + pulse;
-
-            ctx.beginPath();
-            ctx.moveTo(0, 40 + wave);
-            ctx.lineTo(canvas.width, 50 + wave);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(0, canvas.height - 40 - wave);
-            ctx.lineTo(canvas.width, canvas.height - 50 - wave);
-            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `bold ${Math.max(6, size * 0.25)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(obstacle.type, 0, 0);
+            
+            ctx.restore();
         }
-    }
 
-    // Player drawing
-    function drawPlayer() {
-    const player = gameState.player;
-    ctx.save();
+        // Enhanced collision
+        function checkCollision(obj1, obj2) {
+            const dx = (obj1.x + obj1.width/2) - (obj2.x + obj2.width/2);
+            const dy = (obj1.y + obj1.height/2) - (obj2.y + obj2.height/2);
+            const distance = Math.sqrt(dx*dx + dy*dy);
+            return distance < (obj1.width + obj2.width) / 4;
+        }
 
-    if (gameState.cameraShake > 0) {
-        ctx.translate(
-            (Math.random() - 0.5) * gameState.cameraShake,
-            (Math.random() - 0.5) * gameState.cameraShake
-        );
-        gameState.cameraShake *= 0.9;
-    }
+        // Blood type calculation
+        function calculateBloodType() {
+            const [abo1, abo2] = gameState.aboAlleles;
+            const [rh1, rh2] = gameState.rhAlleles;
+            
+            if (!abo1 || !abo2 || !rh1 || !rh2) return 'Incompleto';
+            
+            let aboType = '';
+            if ((abo1 === 'A' && abo2 === 'A') || (abo1 === 'A' && abo2 === 'O') || (abo1 === 'O' && abo2 === 'A')) {
+                aboType = 'A';
+            } else if ((abo1 === 'B' && abo2 === 'B') || (abo1 === 'B' && abo2 === 'O') || (abo1 === 'O' && abo2 === 'B')) {
+                aboType = 'B';
+            } else if ((abo1 === 'A' && abo2 === 'B') || (abo1 === 'B' && abo2 === 'A')) {
+                aboType = 'AB';
+            } else if (abo1 === 'O' && abo2 === 'O') {
+                aboType = 'O';
+            }
+            
+            const rhType = (rh1 === 'Rh+' || rh2 === 'Rh+') ? '+' : '-';
+            return aboType + rhType;
+        }
 
-    // Invulnerability flash
-    if (player.invulnerable > 0) {
-        ctx.globalAlpha = 0.5 + 0.5 * Math.sin(gameState.frameCount * 0.5);
-        player.invulnerable--;
-    }
+        // Show combo indicator
+        function showCombo(points) {
+            const indicator = document.getElementById('comboIndicator');
+            indicator.textContent = `+${points} COMBO!`;
+            indicator.style.animation = 'none';
+            indicator.offsetHeight; // Trigger reflow
+            indicator.style.animation = 'comboFade 1s ease-out';
+        }
 
-    // Tail segments with blood flow effect
-    for (let i = 0; i < player.tailSegments.length - 1; i++) {
-        const segment = player.tailSegments[i];
-        const nextSegment = player.tailSegments[i + 1];
+        // Enhanced UI updates
+        function updateUI() {
+            document.getElementById('bloodType').textContent = gameState.bloodType;
+            document.getElementById('abo1').textContent = gameState.aboAlleles[0] || '_';
+            document.getElementById('abo2').textContent = gameState.aboAlleles[1] || '_';
+            document.getElementById('rh1').textContent = gameState.rhAlleles[0] || '_';
+            document.getElementById('rh2').textContent = gameState.rhAlleles[1] || '_';
+            document.getElementById('score').textContent = gameState.score;
+            
+            // Update hearts
+            const heartsContainer = document.getElementById('livesContainer');
+            heartsContainer.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('span');
+                heart.className = 'heart';
+                heart.textContent = i < gameState.lives ? '❤️' : '🖤';
+                heartsContainer.appendChild(heart);
+            }
+            
+            // Color allele slots
+            ['abo1', 'abo2', 'rh1', 'rh2'].forEach(id => {
+                const slot = document.getElementById(id);
+                const allele = slot.textContent;
+                if (allele !== '_') {
+                    slot.style.backgroundColor = getItemColor(allele) || 'rgba(255,255,255,0.2)';
+                    slot.style.color = '#000';
+                    slot.style.borderColor = getItemColor(allele);
+                } else {
+                    slot.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                    slot.style.color = '#fff';
+                    slot.style.borderColor = 'rgba(255,255,255,0.3)';
+                }
+            });
 
-        const opacity = Math.max(0.2, 0.95 - (i * 0.05));
-        ctx.strokeStyle = `rgba(240, 240, 240, ${opacity})`;
-        ctx.lineWidth = Math.max(1, 5 - (i * 0.25));
-        ctx.lineCap = 'round';
+            // Update progress bar
+            const progressFill = document.getElementById('progressFill');
+            const progress = Math.min(100, (gameState.difficultyLevel - 1) * 12.5);
+            progressFill.style.width = progress + '%';
+        }
 
-        ctx.beginPath();
-        ctx.moveTo(segment.x, segment.y);
-        ctx.lineTo(nextSegment.x, nextSegment.y);
-        ctx.stroke();
-    }
+        // Player update with blood flow
+        function updatePlayer() {
+            const player = gameState.player;
+            const acceleration = 0.9;
+            const friction = 0.87;
+            const maxSpeed = 9;
+            
+            // Movement
+            if (keys['ArrowUp'] && player.y > 25) {
+                player.velocityY -= acceleration;
+                player.targetRotation = -0.18;
+            } else if (keys['ArrowDown'] && player.y < canvas.height - 65) {
+                player.velocityY += acceleration;
+                player.targetRotation = 0.18;
+            } else {
+                player.targetRotation = 0;
+            }
+            
+            player.velocityY *= friction;
+            player.velocityY = Math.max(-maxSpeed, Math.min(maxSpeed, player.velocityY));
+            player.y += player.velocityY;
+            player.rotation += (player.targetRotation - player.rotation) * 0.12;
+            player.y = Math.max(25, Math.min(canvas.height - 65, player.y));
+            
+            // Enhanced tail with blood flow
+            if (player.tailSegments.length > 0) {
+                player.tailSegments[0].targetX = player.x;
+                player.tailSegments[0].targetY = player.y + 17;
+                
+                for (let i = 0; i < player.tailSegments.length; i++) {
+                    const segment = player.tailSegments[i];
+                    
+                    // Blood flow effect - push tail backward
+                    const flowForce = gameState.bloodFlow.strength + gameState.bloodFlow.turbulence;
+                    segment.flowOffset += flowForce * 0.3;
+                    segment.flowOffset *= 0.95; // Damping
+                    
+                    segment.x += (segment.targetX - segment.x) * 0.18;
+                    segment.y += (segment.targetY - segment.y) * 0.18;
+                    
+                    // Apply flow offset
+                    segment.x -= segment.flowOffset;
+                    
+                    if (i < player.tailSegments.length - 1) {
+                        const nextSegment = player.tailSegments[i + 1];
+                        const distance = 8;
+                        const angle = Math.atan2(segment.y - nextSegment.y, segment.x - nextSegment.x);
+                        
+                        nextSegment.targetX = segment.x - Math.cos(angle) * distance;
+                        nextSegment.targetY = segment.y - Math.sin(angle) * distance;
+                        
+                        // Swimming motion + flow turbulence
+                        const waveOffset = Math.sin(gameState.frameCount * 0.18 + i * 0.6) * (1.5 + i * 0.2);
+                        const turbulence = Math.sin(gameState.frameCount * 0.05 + i) * gameState.bloodFlow.turbulence;
+                        nextSegment.targetY += waveOffset + turbulence;
+                    }
+                }
+            }
+        }
 
-    // Main head
-    ctx.translate(player.x + 22, player.y + 17);
-    ctx.rotate(player.rotation);
+        // Objectives system
+        function checkObjective() {
+            if (gameState.bloodType === gameState.currentObjective) {
+                gameState.score += 200;
+                gameState.objectivesCompleted++;
+                gameState.cameraShake = 8;
+                gameState.consecutiveCollects = 0;
+                
+                // Create celebration particles
+                for (let i = 0; i < 20; i++) {
+                    gameState.particles.push(createParticle(
+                        gameState.player.x + 22,
+                        gameState.player.y + 17,
+                        '#FFD700'
+                    ));
+                }
+                
+                showCombo(200);
+                
+                // Next objective
+                gameState.currentObjective = bloodTypes[Math.floor(Math.random() * bloodTypes.length)];
+                document.getElementById('currentObjective').textContent = `Forme o tipo ${gameState.currentObjective}`;
+                
+                // Reset alleles for new challenge
+                gameState.aboAlleles = [null, null];
+                gameState.rhAlleles = [null, null];
+                gameState.bloodType = 'Incompleto';
+            }
+        }
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.beginPath();
-    ctx.ellipse(2, 2, 16, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
+        // Competitor sperm
+        function createCompetitor() {
+            return {
+                x: canvas.width + 50,
+                y: Math.random() * (canvas.height - 200) + 100,
+                width: 35,
+                height: 25,
+                velocityY: (Math.random() - 0.5) * 2,
+                stealCooldown: 0,
+                lifespan: 300 + Math.random() * 200
+            };
+        }
 
-    // Head gradient
-    const headGradient = ctx.createRadialGradient(-3, -3, 0, 0, 0, 20);
-    headGradient.addColorStop(0, '#FFFFFF');
-    headGradient.addColorStop(0.6, '#F0F0F0');
-    headGradient.addColorStop(1, '#D0D0D0');
+        function drawCompetitor(comp) {
+            ctx.save();
+            ctx.globalAlpha = 0.7;
+            
+            // Simple tail
+            ctx.strokeStyle = 'rgba(180, 180, 180, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const tailLength = 40;
+            const wave = Math.sin(gameState.frameCount * 0.2 + comp.x * 0.01) * 8;
+            ctx.moveTo(comp.x - tailLength, comp.y + 12 + wave);
+            ctx.quadraticCurveTo(comp.x - tailLength/2, comp.y + 12 - wave, comp.x, comp.y + 12);
+            ctx.stroke();
+            
+            // Head
+            ctx.translate(comp.x + 17, comp.y + 12);
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.8)';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 12, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
 
-    ctx.fillStyle = headGradient;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 15, 9, 0, 0, Math.PI * 2);
-    ctx.fill();
+        // Main game loop
+        function gameLoop() {
+            if (!gameState.gameRunning || gameState.gamePaused) {
+                if (gameState.gamePaused) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '48px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('PAUSADO', canvas.width/2, canvas.height/2);
+                    ctx.font = '24px Arial';
+                    ctx.fillText('Pressione ESC para continuar', canvas.width/2, canvas.height/2 + 50);
+                }
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            
+            drawBackground();
+            updatePlayer();
+            updateParticles();
+            
+            // Increase difficulty over time
+            if (gameState.frameCount % 900 === 0) {
+                gameState.difficultyLevel++;
+                gameState.speed += 0.4;
+                gameState.bloodFlow.strength += 0.3;
+            }
+            
+            // Dynamic spawn rates
+            const baseSpawnRate = Math.max(35, 100 - Math.floor(gameState.speed * 6));
+            const competitorSpawnRate = Math.max(200, 400 - (gameState.difficultyLevel * 20));
+            
+            // Spawn items and obstacles
+            if (gameState.frameCount % baseSpawnRate === 0) {
+                if (Math.random() < 0.6) {
+                    // Smart item spawning based on objective
+                    let itemType;
+                    const targetType = gameState.currentObjective;
+                    const needsABO = !gameState.aboAlleles[0] || !gameState.aboAlleles[1];
+                    const needsRh = !gameState.rhAlleles[0] || !gameState.rhAlleles[1];
+                    
+                    if (needsABO && Math.random() < 0.6) {
+                        if (targetType.includes('A') && !targetType.includes('AB')) {
+                            itemType = Math.random() < 0.7 ? 'A' : (Math.random() < 0.5 ? 'O' : 'B');
+                        } else if (targetType.includes('B') && !targetType.includes('AB')) {
+                            itemType = Math.random() < 0.7 ? 'B' : (Math.random() < 0.5 ? 'O' : 'A');
+                        } else if (targetType.includes('AB')) {
+                            itemType = Math.random() < 0.8 ? (Math.random() < 0.5 ? 'A' : 'B') : 'O';
+                        } else if (targetType.includes('O')) {
+                            itemType = Math.random() < 0.8 ? 'O' : (Math.random() < 0.5 ? 'A' : 'B');
+                        }
+                    } else if (needsRh && Math.random() < 0.6) {
+                        itemType = targetType.includes('+') ? 
+                            (Math.random() < 0.7 ? 'Rh+' : 'Rh-') : 
+                            (Math.random() < 0.7 ? 'Rh-' : 'Rh+');
+                    } else {
+                        itemType = alleleTypes[Math.floor(Math.random() * alleleTypes.length)];
+                    }
+                    
+                    gameState.items.push(createItem(itemType));
+                } else {
+                    // More diverse obstacles
+                    const obstacleType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+                    gameState.obstacles.push(createObstacle(obstacleType));
+                }
+            }
+            
+            // Spawn competitors
+            if (gameState.frameCount % competitorSpawnRate === 0 && gameState.difficultyLevel >= 2) {
+                if (Math.random() < 0.4) {
+                    gameState.competitors.push(createCompetitor());
+                }
+            }
+            
+            // Update items
+            gameState.items = gameState.items.filter(item => {
+                item.x -= gameState.speed + gameState.bloodFlow.strength;
+                
+                if (checkCollision(gameState.player, item)) {
+                    // Collect allele
+                    if (['A', 'B', 'O'].includes(item.type)) {
+                        if (!gameState.aboAlleles[0]) {
+                            gameState.aboAlleles[0] = item.type;
+                        } else if (!gameState.aboAlleles[1]) {
+                            gameState.aboAlleles[1] = item.type;
+                        } else {
+                            gameState.aboAlleles[Math.floor(Math.random() * 2)] = item.type;
+                        }
+                    } else if (['Rh+', 'Rh-'].includes(item.type)) {
+                        if (!gameState.rhAlleles[0]) {
+                            gameState.rhAlleles[0] = item.type;
+                        } else if (!gameState.rhAlleles[1]) {
+                            gameState.rhAlleles[1] = item.type;
+                        } else {
+                            gameState.rhAlleles[Math.floor(Math.random() * 2)] = item.type;
+                        }
+                    }
+                    
+                    // Combo system
+                    gameState.consecutiveCollects++;
+                    let points = Math.floor(20 + item.width * 0.4);
+                    if (gameState.consecutiveCollects > 3) {
+                        points *= Math.floor(gameState.consecutiveCollects / 3);
+                        showCombo(points);
+                    }
+                    
+                    gameState.score += points;
+                    gameState.bloodType = calculateBloodType();
+                    
+                    // Particle effect
+                    for (let i = 0; i < 8; i++) {
+                        gameState.particles.push(createParticle(
+                            item.x + item.width/2,
+                            item.y + item.height/2,
+                            item.color
+                        ));
+                    }
+                    
+                    checkObjective();
+                    return false;
+                }
+                
+                drawItem(item);
+                return item.x > -item.width - 30;
+            });
+            
+            // Update obstacles
+            gameState.obstacles = gameState.obstacles.filter(obstacle => {
+                obstacle.x -= gameState.speed + gameState.bloodFlow.strength * 0.8;
+                
+                if (gameState.player.invulnerable <= 0 && checkCollision(gameState.player, obstacle)) {
+                    gameState.lives--;
+                    gameState.cameraShake = 20;
+                    gameState.player.invulnerable = 120; // 2 seconds of invulnerability
+                    gameState.consecutiveCollects = 0;
+                    
+                    // Explosion particles
+                    for (let i = 0; i < 15; i++) {
+                        gameState.particles.push(createParticle(
+                            gameState.player.x + 22,
+                            gameState.player.y + 17,
+                            obstacle.color
+                        ));
+                    }
+                    
+                    // Lose random allele
+                    if (Math.random() < 0.4) {
+                        const allAlleles = [
+                            ...gameState.aboAlleles.map((a, i) => ({type: 'abo', index: i, value: a})),
+                            ...gameState.rhAlleles.map((a, i) => ({type: 'rh', index: i, value: a}))
+                        ].filter(a => a.value !== null);
+                        
+                        if (allAlleles.length > 0) {
+                            const toRemove = allAlleles[Math.floor(Math.random() * allAlleles.length)];
+                            if (toRemove.type === 'abo') {
+                                gameState.aboAlleles[toRemove.index] = null;
+                            } else {
+                                gameState.rhAlleles[toRemove.index] = null;
+                            }
+                            gameState.bloodType = calculateBloodType();
+                        }
+                    }
+                    
+                    if (gameState.lives <= 0) {
+                        endGame();
+                        return false;
+                    }
+                    return false;
+                }
+                
+                drawObstacle(obstacle);
+                return obstacle.x > -obstacle.width - 30;
+            });
+            
+            // Update competitors
+            gameState.competitors = gameState.competitors.filter(comp => {
+                comp.x -= gameState.speed * 0.7 + gameState.bloodFlow.strength;
+                comp.y += comp.velocityY;
+                comp.velocityY += (Math.random() - 0.5) * 0.3;
+                comp.velocityY *= 0.95;
+                comp.lifespan--;
+                
+                // Keep competitors in bounds
+                comp.y = Math.max(30, Math.min(canvas.height - 60, comp.y));
+                
+                // Steal alleles if close to player
+                if (comp.stealCooldown <= 0 && checkCollision(gameState.player, comp)) {
+                    const allAlleles = [
+                        ...gameState.aboAlleles.map((a, i) => ({type: 'abo', index: i, value: a})),
+                        ...gameState.rhAlleles.map((a, i) => ({type: 'rh', index: i, value: a}))
+                    ].filter(a => a.value !== null);
+                    
+                    if (allAlleles.length > 0) {
+                        const stolen = allAlleles[Math.floor(Math.random() * allAlleles.length)];
+                        if (stolen.type === 'abo') {
+                            gameState.aboAlleles[stolen.index] = null;
+                        } else {
+                            gameState.rhAlleles[stolen.index] = null;
+                        }
+                        gameState.bloodType = calculateBloodType();
+                        gameState.cameraShake = 10;
+                        gameState.consecutiveCollects = 0;
+                        comp.stealCooldown = 120;
+                    }
+                }
+                
+                if (comp.stealCooldown > 0) comp.stealCooldown--;
+                
+                drawCompetitor(comp);
+                return comp.x > -comp.width - 50 && comp.lifespan > 0;
+            });
+            
+            // Draw player
+            drawPlayer();
+            
+            // Update game state
+            gameState.frameCount++;
+            
+            // Bonus scoring
+            if (gameState.frameCount % 120 === 0 && gameState.bloodType !== 'Incompleto') {
+                gameState.score += 3;
+            }
+            
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
 
-    // Nucleus
-    ctx.fillStyle = '#B8B8B8';
-    ctx.beginPath();
-    ctx.ellipse(-3, 0, 7, 4, 0, 0, Math.PI * 2);
-    ctx.fill();
+        function endGame() {
+            gameState.gameRunning = false;
+            document.getElementById('finalBloodType').textContent = gameState.bloodType;
+            document.getElementById('finalScore').textContent = gameState.score;
+            document.getElementById('objectivesCompleted').textContent = gameState.objectivesCompleted;
+            document.getElementById('finalLevel').textContent = gameState.difficultyLevel;
+            document.getElementById('gameOver').style.display = 'block';
+        }
 
-    ctx.restore();
-}
+        function showStartScreen() {
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('gameOver').style.display = 'none';
+            gameState.gameRunning = false;
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            restartGame();
+        }
+
+        function restartGame() {
+            gameState = {
+                player: { 
+                    x: 100, y: 300, width: 45, height: 35, 
+                    velocityY: 0, rotation: 0, targetRotation: 0,
+                    tailSegments: [],
+                    invulnerable: 0,
+                    comboCount: 0
+                },
+                items: [],
+                obstacles: [],
+                competitors: [],
+                backgroundElements: [],
+                particles: [],
+                bloodFlow: { strength: 2, turbulence: 0 },
+                score: 0,
+                lives: 3,
+                speed: 4,
+                frameCount: 0,
+                gameRunning: true,
+                gamePaused: false,
+                aboAlleles: [null, null],
+                rhAlleles: [null, null],
+                bloodType: 'Incompleto',
+                cameraShake: 0,
+                currentObjective: bloodTypes[Math.floor(Math.random() * bloodTypes.length)],
+                objectivesCompleted: 0,
+                difficultyLevel: 1,
+                consecutiveCollects: 0
+            };
+            
+            // Reinitialize
+            initTail();
+            initBackground();
+            
+            document.getElementById('currentObjective').textContent = `Forme o tipo ${gameState.currentObjective}`;
+            document.getElementById('gameOver').style.display = 'none';
+            updateUI();
+            gameLoop();
+        }
+
+        // Initialize
+        initTail();
+        initBackground();
+        gameState.currentObjective = bloodTypes[Math.floor(Math.random() * bloodTypes.length)];
+        document.getElementById('currentObjective').textContent = `Forme o tipo ${gameState.currentObjective}`;
+        updateUI();
+    </script>
+</body>
+</html>
