@@ -848,14 +848,14 @@ canvas.addEventListener('mousemove', e => {
                     
                     // Blood flow effect - push tail backward
                     const flowForce = gameState.bloodFlow.strength + gameState.bloodFlow.turbulence;
-                    segment.flowOffset += flowForce * 0.05;
+                    segment.flowOffset += flowForce * 0.1;
                     segment.flowOffset *= 0.9; // Damping
                     
                     segment.x += (segment.targetX - segment.x) * 0.18;
                     segment.y += (segment.targetY - segment.y) * 0.18;
                     
                     // Apply flow offset
-                    segment.x -= segment.flowOffset * 0.2;
+                    segment.x -= segment.flowOffset;
                     
                     if (i < player.tailSegments.length - 1) {
                         const nextSegment = player.tailSegments[i + 1];
