@@ -614,40 +614,45 @@ canvas.addEventListener('mousemove', e => {
         }
 
         function drawItem(item) {
-            const pulse = Math.sin(gameState.frameCount * 0.12 + item.pulsePhase) * 0.3 + 1;
-            const size = (item.width / 2) * pulse;
-            
-            ctx.save();
-            ctx.translate(item.x + item.width/2, item.y + item.height/2);
-            ctx.rotate(gameState.frameCount * item.rotationSpeed);
-            
-            ctx.shadowColor = item.color;
-            ctx.shadowBlur = 20 * pulse;
-            
-            const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
-            gradient.addColorStop(0, item.color);
-            gradient.addColorStop(0.7, item.color + 'AA');
-            gradient.addColorStop(1, item.color + '44');
-            
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(0, 0, size, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.shadowBlur = 0;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            ctx.beginPath();
-            ctx.arc(-size * 0.3, -size * 0.3, size * 0.25, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.fillStyle = '#000';
-            ctx.font = `bold ${Math.max(10, size * 0.5)}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(item.type, 0, 0);
-            
-            ctx.restore();
-        }
+    const pulse = Math.sin(gameState.frameCount * 0.12 + item.pulsePhase) * 0.3 + 1;
+    const size = (item.width / 2) * pulse;
+
+    // --- Desenho do círculo girando ---
+    ctx.save();
+    ctx.translate(item.x + item.width/2, item.y + item.height/2);
+    ctx.rotate(gameState.frameCount * item.rotationSpeed);   // 👈 continua girando
+
+    ctx.shadowColor = item.color;
+    ctx.shadowBlur = 20 * pulse;
+
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size);
+    gradient.addColorStop(0, item.color);
+    gradient.addColorStop(0.7, item.color + 'AA');
+    gradient.addColorStop(1, item.color + '44');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(0, 0, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.beginPath();
+    ctx.arc(-size * 0.3, -size * 0.3, size * 0.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore(); // 👈 resetamos a rotação aqui
+
+    // --- Desenho da fonte parada (reta e maior) ---
+    ctx.save();
+    ctx.translate(item.x + item.width/2, item.y + item.height/2);
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${Math.max(16, size * 0.8)}px Arial`; // 👈 aumentei a fonte
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.type, 0, 0);
+    ctx.restore();
+}
 
         function createObstacle(type) {
             const size = Math.random() * 20 + 35;
